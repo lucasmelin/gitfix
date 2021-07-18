@@ -3,10 +3,14 @@ class State:
     Defines an individual state within the state machine.
     """
 
-    def __init__(self, options=None):
-        self.options = None
+    def __init__(self, parent=None, options=None):
+        self.parent = parent
+        self.options = options
 
     def parse_choice(self, event):
+        test = event.name
+        if test == "KEY_LEFT":
+            return "Parent"
         try:
             code = int(event)
         except ValueError:
