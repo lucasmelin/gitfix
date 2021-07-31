@@ -15,7 +15,7 @@ class State:
             code = int(event)
         except ValueError:
             return None
-        if not self.options or code > len(self.options):
+        if not self.options or code >= len(self.options):
             return None
         else:
             return self.options[code]

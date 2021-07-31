@@ -34,6 +34,8 @@ discarding."""
 class CommitedQuestionState(State):
     """
     The "have you committed yet" state.
+
+    Ancestor is StartState.
     """
 
     def __init__(self, parent):
@@ -73,6 +75,8 @@ undo what you have done."""
 class LostNFoundState(State):
     """
     The lost and found state.
+
+    Ancestor is StartState.
     """
 
     def __init__(self, parent):
@@ -96,7 +100,9 @@ if anything looks likely.
 Check your stashes, `git stash list`, to see if you might have stashed instead \
 of committing. You can also visualize what the stashes might be associated with via:
 
-`gitk --all --date-order $(git stash list | awk -F: '{print $1};')`
+```bash
+gitk --all --date-order $(git stash list | awk -F: '{print $1};')
+```
 
 Next, you should probably look in other repositories you have lying around \
 including ones on other hosts and in testing environments, and in your backups.
@@ -107,20 +113,24 @@ which contains the history of what happened to the tip of your branches for \
 the past two weeks or so. You can of course say `git log -g` or `git reflog` \
 to view it, but it may be best visualized with:
 
-`gitk --all --date-order $(git reflog --pretty=%H)`
+```bash
+gitk --all --date-order $(git reflog --pretty=%H)
+```
 
 Next you can look in git's lost and found. Dangling commits get generated \
 for many good reasons including resets and rebases. Still those activities \
 might have mislaid the commits you were interested in. These might be best \
 visualized with:
 
- `gitk --all --date-order $(git fsck | grep "dangling commit" | awk '{print $3;}')`
+```bash
+gitk --all --date-order $(git fsck | grep "dangling commit" | awk '{print $3;}')
+```
 
 The last place you can look is in dangling blobs. These are files which have \
 been git added but not attached to a commit for some (usually innocuous) \
 reason. To look at the files, one at a time, run:
 
-```
+```bash
 git fsck | grep "dangling blob" | while read x x s; do
   git show $s | less;
 done
@@ -139,6 +149,8 @@ commit in a git-stash), you can `git stash merge SHA` or `git cherry-pick SHA` \
 class BadMergeState(State):
     """
     The bad merge state.
+
+    Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
@@ -157,13 +169,15 @@ class BadMergeState(State):
 or more conflicts, and you have now decided that it was a big mistake and want \
 to get out of the merge.
 
-The fastest way out of the merge is `git merge --abort`"""
+The fastest way out of the merge is `git merge --abort` """
         return title, body
 
 
 class BadRebaseState(State):
     """
-    State.
+    Bad Rebase state.
+
+    Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
@@ -188,7 +202,9 @@ The fastest way out of the rebase is `git rebase --abort`"""
 
 class CommittedState(State):
     """
-    State.
+    Committed state.
+
+    Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
@@ -226,14 +242,17 @@ sometimes safe.)"""
 
 class UncommittedState(State):
     """
-    State.
+    Uncommitted state.
+
+    Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
         super().__init__(parent)
         self.options = [
             "Discard everything",
-            "Discard some thingsI want to save my changes",
+            "Discard some things",
+            "I want to save my changes",
         ]
 
     def on_event(self, event):
@@ -305,7 +324,9 @@ garbage collect with immediate pruning."""
 
 class UncommittedEverythingState(State):
     """
-    State.
+    Uncommitted Everything state.
+
+    Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
@@ -334,7 +355,7 @@ never ever want the uncommitted changes. If so, you can run `git reset --hard`\
 , however please be quite aware that this is almost certainly a completely \
 unrecoverable operation. Any changes which are removed here cannot be restored \
 later. This will not delete untracked or ignored files. Those can be deleted \
-with `git clean -nd` `git clean -ndX` respectively, or `git clean -ndx` for \
+with `git clean -nd` and `git clean -ndX` respectively, or `git clean -ndx` for \
 both at once. Well, actually those command do not delete the files. They \
 show what files will be deleted. Replace the "n" in "-nd…" with "f" to \
 actually delete the files. Best practice is to ensure you are not deleting \
@@ -344,7 +365,9 @@ what you should not by looking at the filenames first."""
 
 class UncommittedCommitState(State):
     """
-    State.
+    Uncommitted Commit state.
+
+    Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
@@ -359,16 +382,15 @@ class UncommittedCommitState(State):
 
     def describe(self):
         title = "How to save uncommitted changes"
-        body = """There are five ways you can save your uncommitted change. \
-I also suggest you read Pro Git as these are pretty basic git operations.
+        body = """There are five ways you can save your uncommitted change.
 
 |Description|Command|
 |:------------|:------|
 |Commit them on the local branch.|`git commit -a -m "message"`|
 |Commit them on another branch, no checkout conflicts.|`git checkout other_branch && git commit -am "message"`|
 |Commit them on another branch, conflicts.|`git stash; git checkout other_branch; git stash apply; : "resolve conflicts"; git commit -am "message"`|
-|Commit them on a new branch.|`git checkout -b new_branch; git commit -am "message"|
-|Stash them for later|`git stash save "description"|
+|Commit them on a new branch.|`git checkout -b new_branch; git commit -am "message"`|
+|Stash them for later|`git stash save "description"`|
 """
         return title, body
 
@@ -812,7 +834,9 @@ file. You can do this using `gitk --date-order` or using `git log --graph --deco
 40 character SHA-1 hash ID (or the 7 character abbreviation). If you know the \
 `^` or `~` shortcuts you may use those.
 
-`git checkout SHA -- path/to/filename`
+```bash
+git checkout SHA -- path/to/filename
+```
 
 Obviously replace `SHA` with the reference that is good. You can then add and \
 commit as normal to fix the problem."""
@@ -879,7 +903,7 @@ placeholder. The nonce branch will be called "nonce" in the following \
 example. However, you may use any branch name that is not currently in use. \
 You can delete it immediately after you are done.
 
-```
+```bash
 git branch nonce $last
 git rebase -p --onto $destination $first^ nonce
 ```
@@ -896,7 +920,7 @@ improperly. If you don't like the result, you may delete the nonce branch \
 However, if everything looks good, we can move the actual destination branch \
 pointer to where nonce is:
 
-```
+```bash
 git checkout $destination
 git reset --hard nonce
 git branch -d nonce
@@ -906,7 +930,7 @@ If you double-checked with `gitk --all --date-order`, you would see that the \
 destination branch looks correct. However, the commits are still on the \
 source branch as well. We can get rid of those now:
 
-```
+```bash
 git rebase -p --onto $first^ $last $source
 ```
 
@@ -945,7 +969,8 @@ If you are changing the file contents, typically you would modify the working \
 directory and use git add as normal.
 
 Note if you wish to restore a file to a known good state, you can use: \
-```
+
+```bash
 git checkout GOODSHA -- path/to/filename
 ```
 
@@ -974,15 +999,29 @@ class RemoveDeepState(State):
 
     def describe(self):
         title = "Removing an entire commit"
-        body = """You must first identify the SHA of the commit you wish to remove. You can do this using `gitk --date-order` or using `git log --graph --decorate --oneline` You are looking for the 40 character SHA-1 hash ID (or the 7 character abbreviation). Yes, if you know the `^` or `~` shortcuts you may use those.
+        body = """You must first identify the SHA of the commit you wish to remove. \
+You can do this using `gitk --date-order` or using \
+`git log --graph --decorate --oneline` You are looking for the 40 character SHA-1 \
+hash ID (or the 7 character abbreviation). Yes, if you know the `^` or `~` \
+shortcuts you may use those.
 
-```
+```bash
 git rebase -p --onto SHA^ SHA
 ```
 
-Replace `SHA` with the reference you want to get rid of. The `^` in that command is literal.
+Replace `SHA` with the reference you want to get rid of. The `^` in that command \
+is literal.
 
-However, please be warned. If some of the commits between SHA and the tip of your branch are merge commits, it is possible that `git rebase -p` will be unable to properly recreate them. Please inspect the resulting merge topology using `gitk --date-order HEAD ORIG_HEAD`  to ensure that git did want you wanted. If it did not, there is not really any automated recourse. You can reset back to the commit before the SHA you want to get rid of, and then cherry-pick the normal commits and manually re-merge the "bad" merges. Or you can just suffer with the inappropriate topology (perhaps by creating fake merges with `git merge --ours otherbranch` so that subsequent development work on those branches will be properly merged in with the correct merge-base)."""
+However, please be warned. If some of the commits between SHA and the tip of \
+your branch are merge commits, it is possible that `git rebase -p` will be unable \
+to properly recreate them. Please inspect the resulting merge topology using \
+`gitk --date-order HEAD ORIG_HEAD` to ensure that git did want you wanted. If it \
+did not, there is not really any automated recourse. You can reset back to the \
+commit before the SHA you want to get rid of, and then cherry-pick the normal \
+commits and manually re-merge the "bad" merges. Or you can just suffer with the \
+inappropriate topology (perhaps by creating fake merges with \
+`git merge --ours otherbranch` so that subsequent development work on those branches\
+ will be properly merged in with the correct merge-base)."""
         return title, body
 
 
@@ -993,45 +1032,33 @@ class ModifyDeepState(State):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.options = []
+        self.options = [
+            "Yes please, I want to make a change involving all git commits",
+            "No, I only want to change a single commit",
+        ]
 
     def on_event(self, event):
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
+        elif choice == "Yes please, I want to make a change involving all git commits":
+            return BulkRewriteHistoryState(self)
+        elif choice == "No, I only want to change a single commit":
+            return ChangeSingleDeepState(self)
         return self
 
     def describe(self):
-        title = "Removing an entire commit"
-        body = """You must first identify the SHA of the commit you wish to \
-remove. You can do this using `gitk --date-order` or using \
-`git log --graph --decorate --oneline` You are looking for the 40 character \
-SHA-1 hash ID (or the 7 character abbreviation). Yes, if you know the `^` or \
-`~` shortcuts you may use those.
-
-```
-git rebase -p --onto SHA^ SHA
-```
-
-Obviously replace "SHA" with the reference you want to get rid of. The `^` in \
-that command is literal.
-
-However, please be warned. If some of the commits between SHA and the tip of \
-your branch are merge commits, it is possible that `git rebase -p` will be \
-unable to properly recreate them. Please inspect the resulting merge topology \
-`gitk --date-order HEAD ORIG_HEAD` and contents to ensure that git did want \
-you wanted. If it did not, there is not really any automated recourse. You can \
-reset back to the commit before the SHA you want to get rid of, and then \
-cherry-pick the normal commits and manually re-merge the "bad" merges. Or you \
-can just suffer with the inappropriate topology (perhaps creating fake merges \
-`git merge --ours otherbranch` so that subsequent development work on those \
-branches will be properly merged in with the correct merge-base)."""
+        title = "Do you want to remove/change/rename a particular file/directory "
+        "from all commits during all of git's history"
+        body = ""
         return title, body
 
 
 class UncommittedSomethingsState(State):
     """
-    State.
+    Uncommitted Something state.
+
+    Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
@@ -1049,7 +1076,7 @@ class UncommittedSomethingsState(State):
         body = """So you have not yet committed and you want to undo some things.\
 `git status` will tell you exactly what you need to do. For example:
 
-```
+```bash
 # On branch master
 # Changes to be committed:
 #   (use "git reset HEAD <file>..." to unstage)
@@ -1069,8 +1096,8 @@ class UncommittedSomethingsState(State):
 ```
 
 However, the `git checkout` in file mode is a command that cannot be recovered \
-from — the changes which are discarded most probably cannot be recovered. \
-Perhaps you should run `git stash save -p "description"` instead, and select \
+from; the changes which are discarded most probably cannot be recovered. \
+Perhaps you should run `git stash save -p "description"` instead and select \
 the changes you no longer want to be stashed, instead of permanently removing \
 them.
 """
@@ -1179,7 +1206,7 @@ The line with a star on it in the `git branch` output is the branch you are curr
 
 - Create and checkout a nonce branch pointing at that commit.
 
-```
+```bash
 git checkout -b nonce SHA
 ```
 
@@ -1199,7 +1226,7 @@ If the commit you are updating is a merge commit, ensure that the log message re
 
 Remembering to substitute the correct branch name for $master
 
-```
+```bash
 git rebase -p --onto $(git rev-parse nonce) HEAD^ $master
 ```
 
@@ -1232,7 +1259,7 @@ class ChangeSingleDeepSimpleState(State):
         title = "Changing a single commit involving only simple commits"
         body = """You must first identify the SHA of the commit you wish to remove. You can do this using `gitk --date-order` or using `git log --graph --decorate --oneline` You are looking for the 40 character SHA-1 hash ID (or the 7 character abbreviation). Yes, if you know the `^` or `~` shortcuts you may use those.
 
-```
+```bash
 git rebase -i SHA^
 ```
 
@@ -1268,7 +1295,9 @@ want to revert. You can do this using `gitk --date-order` or using \
 SHA-1 hash ID (or the 7 character abbreviation). If you know the `^` or `~` \
 shortcuts you may use those.
 
-`git revert SHA`
+```bash
+git revert SHA
+```
 
 Obviously replace `SHA` with the reference you want to revert. If you want \
 to revert multiple SHAs, you may specify a range or a list of SHAs."""
@@ -1331,7 +1360,7 @@ but generates two commits. The second knows about the current internal files git
 uses to do the necessary work in one commit. Only one command is different and a \
 second command runs at a different time.
 
-```
+```bash
 # Portable method to overwrite one branch with another in two commits
 git clean -dfx
 git checkout $destination
@@ -1344,7 +1373,7 @@ git merge -s ours $source
 
 or
 
-```
+```bash
 # Hacky method to overwrite one branch with another in one commit
 git clean -dfx
 git checkout $destination
@@ -1381,10 +1410,10 @@ class PushedOldState(State):
         title = "I am a bad person and must rewrite published history"
         body = """Hopefully you read the previous reference and fully understand \
 why this is bad and what you have to tell everyone else to do in order to \
-recover from this condition. Assuming this, you simply need to go to the parts \
-of this document which assume that you have not yet pushed and do them as normal. \
-Then you need to do a "force push" `git push -f` to thrust your updated history \
-upon everyone else. As you read in the reference, this may be denied by default \
+recover from this condition. Assuming this, you simply need to use the commands \
+which assume that you have not yet pushed and do them as normal. \
+Then you need to do a "force push" using `git push -f` to thrust your updated history \
+upon everyone else. This may be denied by default \
 by your upstream repository (see `git config receive.denyNonFastForwards`, but \
 can be disabled (temporarily I suggest) if you have access to the server. You \
 then will need to send an email to everyone who might have pulled the history \
@@ -1442,13 +1471,13 @@ class BfgState(State):
 
 Remove all blobs bigger than 1 megabyte (to make your repo take up less space):
 
-```
+```bash
 $ bfg --strip-blobs-bigger-than 1M  my-repo.git
 ```
 
 Replace all passwords listed in a file with ***REMOVED*** wherever they occur in your repository :
 
-```
+```bash
 $ bfg --replace-text passwords.txt  my-repo.git
 ```
 """
@@ -1517,13 +1546,15 @@ branch that was the destination of the bad merge, `$source` with the name of \
 the branch that was the source of the bad merge, and `$sha` with the SHA-1 hash \
 ID of the bad merge itself.
 
-`git checkout $destination`
-`git revert $sha`
+```bash
+git checkout $destination
+git revert $sha
 # save the SHA-1 of the revert commit to un-revert it later
-`revert="git rev-parse HEAD"`
-`git checkout $source`
-`git merge $destination`
-`git revert $revert`
+revert="git rev-parse HEAD"
+git checkout $source
+git merge $destination
+git revert $revert
+```
 
 Another option is to abandon the branch you merged from, recreate it from the \
 previous merge-base with the commits since then rebased or cherry-picked over, \

@@ -9,3 +9,5 @@ Material from https://sethrobertson.github.io/GitFixUm/, copyright © 2012 Seth 
 http://justinhileman.info/article/git-pretty/
 
 https://dangitgit.com/en
+
+https://github.com/googlefonts/fontbakery/issues/2559
