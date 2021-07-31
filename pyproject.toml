@@ -1,9 +1,14 @@
 [tool.poetry]
 name = "gitfix"
-version = "0.1.0"
+version = "0.2.0"
 description = "Command-line tool to help you recover from a broken git state."
 authors = ["Lucas Melin <lucas.melin@gmail.com>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/lucasmelin/gitfix"
+homepage = "https://github.com/lucasmelin/gitfix"
+keywords = ["git"]
+classifiers = ["Topic :: Software Development :: Version Control :: Git", "Topic :: Utilities"]
 
 [tool.poetry.scripts]
 gitfix = 'gitfix.main:main'
