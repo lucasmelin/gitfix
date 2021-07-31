@@ -5,7 +5,7 @@ from pathlib import Path
 
 import nox
 
-package = "py_gitfix"
+package = "gitfix"
 nox.options.sessions = "lint", "safety", "tests"
 locations = "src", "tests", "noxfile.py"
 
@@ -52,7 +52,7 @@ def lint(session):
         "flake8-docstrings",
         "pep8-naming",
     )
-    session.run("isort", "--check", "--diff", "--profile", "black", *args)
+    session.run("isort", "--profile", "black", *args)
     session.run("flake8", *args)
 
 

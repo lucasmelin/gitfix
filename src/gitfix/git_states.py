@@ -1,17 +1,20 @@
-from py_gitfix.state import State
-import time
+"""Transition states to help locate the proper git steps to run."""
+from gitfix.state import State
 
 
 class StartState(State):
-    """
-    The starting state.
+    """The starting state.
+
+    No ancestors.
     """
 
     def __init__(self):
+        """Initialize the starting state."""
         super().__init__()
         self.options = ["Fix a change", "Find what is lost"]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Fix a change":
             return CommitedQuestionState(self)
@@ -21,6 +24,7 @@ class StartState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = (
             "Are you trying to find that which is lost or fix a change that was made?"
         )
@@ -32,13 +36,13 @@ discarding."""
 
 
 class CommitedQuestionState(State):
-    """
-    The "have you committed yet" state.
+    """The 'have you committed yet' state.
 
     Ancestor is StartState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(
             parent,
             options=[
@@ -50,6 +54,7 @@ class CommitedQuestionState(State):
         )
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "I am in the middle of a bad merge":
             return BadMergeState(self)
@@ -65,6 +70,7 @@ class CommitedQuestionState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = "Have you committed?"
         body = """If you have not yet committed that which you do not want, git \
 does not know anything about what you have done yet, so it is pretty easy to \
@@ -73,17 +79,18 @@ undo what you have done."""
 
 
 class LostNFoundState(State):
-    """
-    The lost and found state.
+    """The lost and found state.
 
     Ancestor is StartState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -91,6 +98,7 @@ class LostNFoundState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = "I have lost some commits I know I made"
         body = """First make sure that it was not on a different branch. Try \
 `git log -Sfoo --all` where `foo` is replaced with something unique in the \
@@ -147,23 +155,25 @@ commit in a git-stash), you can `git stash merge SHA` or `git cherry-pick SHA` \
 
 
 class BadMergeState(State):
-    """
-    The bad merge state.
+    """The bad merge state.
 
     Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Recovering from a broken merge"
         body = """So, you were in the middle of a merge, have encountered one \
 or more conflicts, and you have now decided that it was a big mistake and want \
@@ -174,23 +184,25 @@ The fastest way out of the merge is `git merge --abort` """
 
 
 class BadRebaseState(State):
-    """
-    Bad Rebase state.
+    """Bad Rebase state.
 
     Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Recovering from a broken rebase"
         body = """So, you were in the middle of a rebase, have encountered one \
 or more conflicts, and you have now decided that it was a big mistake and want \
@@ -201,13 +213,13 @@ The fastest way out of the rebase is `git rebase --abort`"""
 
 
 class CommittedState(State):
-    """
-    Committed state.
+    """Committed state.
 
     Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "No, I have no changes/working directory is clean",
@@ -216,6 +228,7 @@ class CommittedState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -228,6 +241,7 @@ class CommittedState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Do you have uncommitted stuff in your working directory?"
         body = """So you have committed. However, before we go about fixing or \
 removing whatever is wrong, you should first ensure that any uncommitted changes \
@@ -241,13 +255,13 @@ sometimes safe.)"""
 
 
 class UncommittedState(State):
-    """
-    Uncommitted state.
+    """Uncommitted state.
 
     Ancestors are StartState -> CommitedQuestionState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Discard everything",
@@ -256,6 +270,7 @@ class UncommittedState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -268,6 +283,7 @@ class UncommittedState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Discard everything or just some things?"
         body = (
             "So you have not yet committed, the question is now whether you want to"
@@ -278,15 +294,18 @@ class UncommittedState(State):
 
 
 class CommittedReallyState(State):
-    """
-    The committed really state.
+    """The committed really state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = ["Yes, pushes were made", "No pushes"]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -297,6 +316,7 @@ class CommittedReallyState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Have you pushed?"
         body = """So you have committed, the question is now whether you have \
 made your changes (or at least the changes you are interesting in "fixing") \
@@ -323,28 +343,30 @@ garbage collect with immediate pruning."""
 
 
 class UncommittedEverythingState(State):
-    """
-    Uncommitted Everything state.
+    """Uncommitted Everything state.
 
     Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "How to undo all uncommitted changes"
         body = """So you have not yet committed and you want to undo everything.\
  Well, best practice is for you to stash the changes in case you were mistaken \
 and later decide that you really wanted them after all. \
-`git stash save "description of changes"`. You can revisit those stashes later \
+`git stash push -m "description of changes"`. You can revisit those stashes later \
 `git stash list` and decide whether to `git stash drop` them after some time \
 has passed. Please note that untracked and ignored files are not stashed by \
 default. See `--include-untracked` and `--all` for stash options to handle \
@@ -364,23 +386,25 @@ what you should not by looking at the filenames first."""
 
 
 class UncommittedCommitState(State):
-    """
-    Uncommitted Commit state.
+    """Uncommitted Commit state.
 
     Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "How to save uncommitted changes"
         body = """There are five ways you can save your uncommitted change.
 
@@ -390,17 +414,19 @@ class UncommittedCommitState(State):
 |Commit them on another branch, no checkout conflicts.|`git checkout other_branch && git commit -am "message"`|
 |Commit them on another branch, conflicts.|`git stash; git checkout other_branch; git stash apply; : "resolve conflicts"; git commit -am "message"`|
 |Commit them on a new branch.|`git checkout -b new_branch; git commit -am "message"`|
-|Stash them for later|`git stash save "description"`|
+|Stash them for later|`git stash push -m "description"`|
 """
         return title, body
 
 
 class PushedState(State):
-    """
-    State.
+    """Pushed state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Yes, I can make a new commit, but the bad commit trashed a particular file"
@@ -417,6 +443,7 @@ class PushedState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -459,6 +486,7 @@ class PushedState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = (
             "Can you make a positive commit to fix the problem and what is the fix"
             " class?"
@@ -471,11 +499,14 @@ commit to create a new commit which undoes the changes made in a previous commit
 
 
 class UnpushedState(State):
-    """
-    The unpushed state.
+    """The unpushed state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Yes, I want to discard all unpushed changes",
@@ -484,6 +515,7 @@ class UnpushedState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -499,6 +531,7 @@ class UnpushedState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Do you want to discard all unpushed changes on this branch?"
         body = """There is a shortcut in case you want to discard all changes made \
 on this branch since you have last pushed or in any event, to make your local branch \
@@ -510,21 +543,26 @@ to some other branch or ref."""
 
 
 class DiscardAllUnpushedState(State):
-    """
-    State.
+    """Discard All Unpushed state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Discarding all local commits on this branch"
         body = """In order to discard all local commits on this branch, to \
 make the local branch identical to the "upstream" of this branch, simply \
@@ -534,21 +572,26 @@ run `git reset --hard @{u}`
 
 
 class ReplaceAllUnpushedState(State):
-    """
-    State.
+    """Replace All Unpushed state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Replacing all branch history/contents"
         body = """If instead of discarding all local commits, you can make \
 your branch identical to some other branch, tag, ref, or SHA that exists on \
@@ -568,11 +611,14 @@ Replace `REF` with the reference or SHA you want to get back to."""
 
 
 class FixUnpushedState(State):
-    """
-    State.
+    """Fix unpushed state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Yes, I want to change the most recent commit",
@@ -585,6 +631,7 @@ class FixUnpushedState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -610,6 +657,7 @@ class FixUnpushedState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Is the commit you want to fix the most recent?"
         body = (
             "While the techniques mentioned to deal with deeper commits will work on"
@@ -620,11 +668,14 @@ class FixUnpushedState(State):
 
 
 class ChangeLastState(State):
-    """
-    State.
+    """Change Last state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "I want to remove the last commit",
@@ -634,6 +685,7 @@ class ChangeLastState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -652,6 +704,7 @@ class ChangeLastState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = (
             "Do you want to remove or change the commit message/contents of the last"
             " commit?"
@@ -661,21 +714,26 @@ class ChangeLastState(State):
 
 
 class RemoveLastState(State):
-    """
-    State.
+    """Remove Last state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Removing the last commit"
         body = """To remove the last commit from git, you can simply run \
 `git reset --hard HEAD^` If you are removing multiple commits from the top, \
@@ -693,21 +751,26 @@ If you want to save the commits on a new branch name, then run \
 
 
 class UndoTipState(State):
-    """
-    State.
+    """Undo Tip state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Undoing the last few git operations affecting HEAD/my branch's tip"
         body = """Practically every git operation which affects the repository \
 is recorded in the git reflog. You may then use the reflog to look at the \
@@ -745,21 +808,26 @@ operation will then be lost. You could `git cherry-pick` or \
 
 
 class ReworkLastState(State):
-    """
-    State.
+    """Rework Last state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeLastState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState -> ChangeLastState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Reworking the last commit"
         body = """WARNING: These techniques should only be used for non-merge \
 commits. If you have a merge commit, you are better off deleting the merge \
@@ -780,11 +848,13 @@ in which commits, this may be what you want.
 
 
 class ChangeDeepState(State):
-    """
-    State.
+    """Change Deep state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Yes, I want to remove an entire commit",
@@ -792,6 +862,7 @@ class ChangeDeepState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -802,27 +873,33 @@ class ChangeDeepState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Do you want to remove an entire commit?"
         body = ""
         return title, body
 
 
 class PushedRestoreFileState(State):
-    """
-    The pushed - restore file state.
+    """The pushed - restore file state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Making a new commit to restore a file deleted earlier"
         body = """The file may have been deleted or every change to that file in that \
 commit (and all commits since then) should be destroyed. If so, you can simply \
@@ -843,53 +920,27 @@ commit as normal to fix the problem."""
         return title, body
 
 
-class RemoveLastState(State):
-    """
-    State.
-    """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.options = []
-
-    def on_event(self, event):
-        choice = self.parse_choice(event)
-        if choice == "Parent":
-            return self.parent
-        return self
-
-    def describe(self):
-        title = "Removing the last commit"
-        body = """To remove the last commit from git, you can simply run \
-`git reset --hard HEAD^` If you are removing multiple commits from the top, \
-you can `run git reset --hard HEAD~2` to remove the last two commits. You \
-can increase the number to remove even more commits.
-
-If you want to "uncommit" the commits, but keep the changes around for \
-reworking, remove the `--hard`: `git reset HEAD^ which will evict the commits \
-from the branch and from the index, but leave the working tree around.
-
-If you want to save the commits on a new branch name, then run \
-`git branch newbranchname` before doing the `git reset`."""
-        return title, body
-
-
 class MoveCommitState(State):
-    """
-    State.
+    """Move Commit state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Moving a commit from one branch to another"
         body = """So, you have a commit which is in the wrong place and you \
 want to move it from one branch to another. In order to do this, you will \
@@ -909,7 +960,7 @@ git rebase -p --onto $destination $first^ nonce
 ```
 
 Remember that when you substitute $first in the command above, leave the \
-"^" alone, it is literal.
+`^` alone, it is literal.
 
 Use `gitk --all --date-order` to check to make sure the move looks correct \
 (pretending that nonce is the destination branch). Please check very \
@@ -945,28 +996,32 @@ aware that the merge occurred."""
 
 
 class UpdateLastState(State):
-    """
-    State.
+    """Update Last state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeLastState.
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState -> PushedOldState -> UnpushedState -> FixUnpushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Updating the last commit's contents or commit message"
         body = """To update the last commit's contents, author, or commit \
 message for a commit which you have not pushed or otherwise published, first \
 you need to get the index into the correct state you wish the commit to \
-reflect. If you are changing the commit message only, you need do nothing. \
-If you are changing the file contents, typically you would modify the working \
-directory and use git add as normal.
+reflect. If you are changing the file contents, typically you would modify \
+the working directory and use `git add` as normal.
 
 Note if you wish to restore a file to a known good state, you can use: \
 
@@ -974,6 +1029,8 @@ Note if you wish to restore a file to a known good state, you can use: \
 git checkout GOODSHA -- path/to/filename
 ```
 
+If you are changing the commit message only, you don't need to do anything \
+before moving on to the following step. \
 Once the index is in the correct state, then you can run `git commit --amend` \
 to update the last commit. Yes, you can use `-a` if you want to avoid the \
 `git add` suggested in the previous paragraph. You can also use `--author` \
@@ -983,21 +1040,25 @@ to change the author information.
 
 
 class RemoveDeepState(State):
-    """
-    State.
+    """Remove Deep state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Removing an entire commit"
         body = """You must first identify the SHA of the commit you wish to remove. \
 You can do this using `gitk --date-order` or using \
@@ -1026,11 +1087,13 @@ inappropriate topology (perhaps by creating fake merges with \
 
 
 class ModifyDeepState(State):
-    """
-    State.
+    """Modify Deep state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Yes please, I want to make a change involving all git commits",
@@ -1038,6 +1101,7 @@ class ModifyDeepState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1048,6 +1112,7 @@ class ModifyDeepState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Do you want to remove/change/rename a particular file/directory "
         "from all commits during all of git's history"
         body = ""
@@ -1055,23 +1120,25 @@ class ModifyDeepState(State):
 
 
 class UncommittedSomethingsState(State):
-    """
-    Uncommitted Something state.
+    """Uncommitted Something state.
 
     Ancestors are StartState -> CommitedQuestionState -> UncommittedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "How to undo some uncommitted changes"
         body = """So you have not yet committed and you want to undo some things.\
 `git status` will tell you exactly what you need to do. For example:
@@ -1105,11 +1172,13 @@ them.
 
 
 class BulkRewriteHistoryState(State):
-    """
-    State.
+    """Bulk Rewrite History state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = [
             "Not just removing data (eg. re-arranging directory structure for all"
@@ -1119,6 +1188,7 @@ class BulkRewriteHistoryState(State):
         ]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1137,6 +1207,7 @@ class BulkRewriteHistoryState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Changing all commits during all of git's history"
         body = (
             "You have not pushed but still somehow want to change all commits in all of"
@@ -1146,15 +1217,18 @@ class BulkRewriteHistoryState(State):
 
 
 class ChangeSingleDeepState(State):
-    """
-    State.
+    """Change Single Deep state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = ["Yes, a merge commit is involved", "No, only simple commits"]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1165,6 +1239,7 @@ class ChangeSingleDeepState(State):
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Is a merge commit involved?"
         body = (
             "If the commit you are trying to change is a merge commit, or if there is a"
@@ -1176,21 +1251,25 @@ class ChangeSingleDeepState(State):
 
 
 class ChangeSingleDeepMergeState(State):
-    """
-    State.
+    """Change Single Deep Merge state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState -> ChangeSingleDeepState
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Changing a single commit involving a merge"
         body = """Note, that this only applies if you have a merge commit. If a fast-forward (ff) merge occurred you only have simple commits, so should use other instructions.
 
@@ -1214,7 +1293,7 @@ Replace `SHA` with the reference you want to modify.
 
 - Modify the commit
 
-You need to get the index into the correct state you wish the commit to reflect. If you are changing the commit message only, you need do nothing. If you are changing the file contents, typically you would modify the working directory and use `git add` as normal.
+You need to get the index into the correct state you wish the commit to reflect. If you are changing the file contents, typically you would modify the working directory and use `git add` as normal. If you are changing the commit message only, you don't need to do anything before moving on to the next step.
 
 Note if you wish to restore a file to a known good state, you can use `git checkout GOODSHA -- path/to/filename`.
 
@@ -1241,21 +1320,25 @@ You don't need it. It was just there to communicate an SHA between two steps in 
 
 
 class ChangeSingleDeepSimpleState(State):
-    """
-    State.
+    """Change Single Deep Simple state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState -> ChangeSingleDeepState
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Changing a single commit involving only simple commits"
         body = """You must first identify the SHA of the commit you wish to remove. You can do this using `gitk --date-order` or using `git log --graph --decorate --oneline` You are looking for the 40 character SHA-1 hash ID (or the 7 character abbreviation). Yes, if you know the `^` or `~` shortcuts you may use those.
 
@@ -1272,21 +1355,25 @@ When using "edit" to change contents or author, when you are dumped into the she
 
 
 class PushedNewSimpleState(State):
-    """
-    State.
+    """Pushed New Simple state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Reverting an old simple pushed commit"
         body = """To create an positive commit to remove the effects of a \
 simple (non-merge) commit, you must first identify the SHA of the commit you \
@@ -1305,21 +1392,25 @@ to revert multiple SHAs, you may specify a range or a list of SHAs."""
 
 
 class PushedFixitState(State):
-    """
-    The pushed - fixit state.
+    """The pushed - fixit state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Making a new commit to fix an old commit"
         body = """If the problem in the old commit is just something was done \
 incorrectly, go ahead and make a normal commit to fix the problem. Feel free to \
@@ -1328,21 +1419,25 @@ reference the old commit SHA in the commit message."""
 
 
 class BranchOverlayMergeState(State):
-    """
-    The branch - overlay merge state.
+    """The branch - overlay merge state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
         return self
 
     def describe(self):
+        """Describe the state."""
         title = "Rewriting an old branch with a new branch with a new commit"
         body = """If the state of a branch is contaminated beyond repair and \
 you have pushed that branch or otherwise do not want to rewrite the existing \
@@ -1389,15 +1484,18 @@ git commit -m "Rewrite $destination with $source"
 
 
 class PushedOldState(State):
-    """
-    State.
+    """Pushed Old state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = ["Proceed with fixing the old commit"]
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1407,6 +1505,7 @@ class PushedOldState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = "I am a bad person and must rewrite published history"
         body = """Hopefully you read the previous reference and fully understand \
 why this is bad and what you have to tell everyone else to do in order to \
@@ -1424,15 +1523,18 @@ the now outdated history."""
 
 
 class FilterBranchState(State):
-    """
-    State.
+    """Filter Branch state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState -> BulkRewriteHistoryState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1440,6 +1542,7 @@ class FilterBranchState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = "Arbitrarily changing all commits during all of git's history"
         body = """`git filter-branch` is a powerful, complex command that allows you to perform arbitary scriptable operations on all commits in git repository history. This flexibility can make it quite slow on big repos, and makes using the command quite difficult. See: https://git-scm.com/docs/git-filter-branch
         """
@@ -1447,15 +1550,18 @@ class FilterBranchState(State):
 
 
 class BfgState(State):
-    """
-    State.
+    """BFG state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> UnpushedState -> FixUnpushedState -> ChangeDeepState -> ModifyDeepState -> BulkRewriteHistoryState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1463,6 +1569,7 @@ class BfgState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = (
             "Use The BFG to remove unwanted data, like big files or passwords, from Git"
             " repository history"
@@ -1485,15 +1592,18 @@ $ bfg --replace-text passwords.txt  my-repo.git
 
 
 class PushedNewMergeState(State):
-    """
-    The pushed - new merge state.
+    """The pushed - new merge state.
+
+    Ancestors are StartState -> CommitedQuestionState -> CommittedState -> CommittedReallyState -> PushedState.
     """
 
     def __init__(self, parent):
+        """Initialize the state."""
         super().__init__(parent)
         self.options = []
 
     def on_event(self, event):
+        """Decide on the next state, based on the event."""
         choice = self.parse_choice(event)
         if choice == "Parent":
             return self.parent
@@ -1501,6 +1611,7 @@ class PushedNewMergeState(State):
             return self
 
     def describe(self):
+        """Describe the state."""
         title = "Reverting a merge commit"
         body = """Note, that this only applies if you have a merge commit. \
 If a fast-forward (ff) merge occurred you only have simple commits, so should \

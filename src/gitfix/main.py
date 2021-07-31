@@ -1,19 +1,20 @@
+"""CLI event loop and terminal printing functions."""
+import re
 import sys
-import time
 
 from blessed import Terminal
-
-from py_gitfix import git_states
+from rich import box
+from rich.align import Align
 from rich.console import Console
 from rich.markdown import Markdown
-from rich.table import Table
 from rich.style import Style
-from rich.align import Align
-from rich import box
-import re
+from rich.table import Table
+
+from gitfix import git_states
 
 
 def parse_md(md):
+    """Parse markdown and return a Rich markdown object."""
     table_re = r"(^|[^|]\n)((?:^\|[^\n]*\|(?:\n|$))+)([^|]|$)"
     md = re.sub(r"\n([\r\t ]*\n)+", r"\n\n", md, flags=re.MULTILINE)
     md = re.sub(r"^[\t ]*\|", r"|", md, flags=re.MULTILINE)
@@ -37,6 +38,7 @@ def parse_md(md):
 
 
 def parse_md_table(match, tables_memo):
+    """Parse a markdown table and return a Rich markdown object."""
     [table_header, table_body, columns] = split_md_table(match.group(2))
     b = box.Box("    \n    \n══╪═\n    \n┈┈┼┈\n┈┈┼┈\n    \n    ")
     table = Table(
@@ -50,9 +52,7 @@ def parse_md_table(match, tables_memo):
     for row in table_header:
         row = map(Align.center, row)
         table.add_row(*row, style=sty_header)
-    num = 0
-    for row in table_body:
-        num += 1
+    for num, row in enumerate(table_body, start=1):
         style = sty_even if (num % 2 == 0) else sty_odd
         # Format any code blocks in table
         formatted_row = [
@@ -68,29 +68,21 @@ def parse_md_table(match, tables_memo):
     before = "" if match.group(1) == "\n\n" else "\n"
     after = "  " if match.group(3) == "\n" else "  \n"
     tables_memo.append(before + formated_text)
-    return (
-        match.group(1)
-        + "<#MD-TABLE-"
-        + str(len(tables_memo) - 1)
-        + "#>"
-        + after
-        + match.group(3)
-    )
+    return f"{match.group(1)}<#MD-TABLE-{len(tables_memo) - 1}#>{after}{match.group(3)}"
 
 
 def map_md_table_align_col(cell):
-    import re
-
+    """Map markdown table column alignments."""
     if re.match(r"^\s*:-+:\s*$", cell):
         return "center"
-    if re.match(r"^\s*-+:\s*$", cell):
+    elif re.match(r"^\s*-+:\s*$", cell):
         return "right"
-    return "left"
+    else:
+        return "left"
 
 
 def split_md_table(md_table):
-    import re
-
+    """Split a markdown table into header, body and columns."""
     md_table = re.sub(r"^\||\|$", "", md_table, flags=re.MULTILINE)
     table_header = []
     table_body = []
@@ -119,10 +111,12 @@ def split_md_table(md_table):
 
 
 def clear_screen(term):
+    """Clear the terminal."""
     print(term.home + term.black_on_black + term.clear)
 
 
 def display_state(term, console, description):
+    """Display the current state of the git fix walkthrough."""
     title, body = description[0], description[1]
     print(term.cyan(f"{title}"))
     print(parse_md(body))
@@ -130,11 +124,13 @@ def display_state(term, console, description):
 
 
 def display_options(term, options):
+    """Display the available options for the current state."""
     for idx, option in enumerate(options):
         print(term.yellow(f"{idx}: {option}"))
 
 
 def main():
+    """Main function, prompt loop."""
     term = Terminal()
     console = Console()
     with term.cbreak(), term.hidden_cursor():
