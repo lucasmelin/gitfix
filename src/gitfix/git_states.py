@@ -101,7 +101,7 @@ class LostNFoundState(State):
         """Describe the state."""
         title = "I have lost some commits I know I made"
         body = """First make sure that it was not on a different branch. Try \
-`git log -Sfoo --all` where `foo` is replaced with something unique in the \
+`git log --grep foo --all` where `foo` is replaced with something unique in the \
 commits you made. You can also search with `gitk --all --date-order` to see \
 if anything looks likely.
 
@@ -328,7 +328,7 @@ whether they have pushed, and since you have their commits, the answer is almost
 certainly "yes".
 
 Please note in any and all events, the recipes provided here will typically only \
-modify the current branch you are on  (only one exception which will self-notify). \
+modify the current branch you are on (only one exception which will self-notify). \
 Specifically, any tags or branches involving the commit you are changing or a child \
 of that commit will not be modified. You must deal with those separately. Look at \
 `gitk --all --date-order` to help visualize what other git references might also \
@@ -741,7 +741,7 @@ you can run `git reset --hard HEAD~2` to remove the last two commits. You can \
 increase the number to remove even more commits.
 
 If you want to "uncommit" the commits, but keep the changes around for \
-reworking, remove the `--hard`: `git reset HEAD^` which will evict the \
+reworking, remove the `--hard` leaving `git reset HEAD^` which will evict the \
 commits from the branch and from the index, but leave the working tree around.
 
 If you want to save the commits on a new branch name, then run \

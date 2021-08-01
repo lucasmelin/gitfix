@@ -4,7 +4,21 @@ Terminal application to help recover from a broken git state.
 
 ## Screenshots
 
-![GitFix Screenshots](./docs/assets/uncommitted.png)
+![GitFix Screenshots](https://raw.githubusercontent.com/lucasmelin/gitfix/main/docs/assets/uncommitted.png?token=AABSHC7LZSRH6YORY6XWSB3BAXHY2)
+
+## Installation
+
+With `pip`:
+```
+pip install gitfix
+```
+
+With `pipx`:
+```
+pipx install gitfix
+```
+
+Optionally, see the releases page to download a binary for Windows. Rename the executable to `gitfix.exe` and add it to a directory in your `PATH`.
 
 ## Acknowledgements
 
