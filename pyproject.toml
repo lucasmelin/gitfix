@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gitfix"
-version = "0.2.2"
+version = "0.2.3"
 description = "Command-line tool to help you recover from a broken git state."
 authors = ["Lucas Melin <lucas.melin@gmail.com>"]
 license = "MIT"
@@ -14,7 +14,7 @@ classifiers = ["Topic :: Software Development :: Version Control :: Git", "Topic
 gitfix = 'gitfix.main:main'
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.6.8"
 blessed = "^1.18.1"
 rich = "^10.6.0"
 
